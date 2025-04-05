@@ -3,58 +3,203 @@
 
 // Implementar un sistema de cuentas bancarias que permita realizar operaciones como depósitos, retiros, transferencias y pagos.
 
-class Banco{}
-class Cliente{}
+using System;
+using System.Collections.Generic;
 
-abstract class Cuenta{}
-class CuentaOro: Cuenta{}
-class CuentaPlata: Cuenta{}
-class CuentaBronce: Cuenta{}
+abstract class Cuenta
+{
+    public double Saldo { get; protected set; }
+    public int Puntos { get; protected set; }
 
-abstract class Operacion{}
-class Deposito: Operacion{}
-class Retiro: Operacion{}
-class Transferencia: Operacion{}
-class Pago: Operacion{}
+    public virtual void Depositar(double monto)
+    {
+        if (monto > 0)
+        {
+            Saldo += monto;
+            SumarPuntos(monto);
+        }
+    }
 
+    protected abstract void SumarPuntos(double monto);
 
-/// EJEMPLO DE USO ///
+    public override string ToString()
+    {
+        return $"Saldo: ${Saldo}, Puntos: {Puntos}";
+    }
+}
 
-// Definiciones 
+class CuentaOro : Cuenta
+{
+    protected override void SumarPuntos(double monto)
+    {
+        Puntos += (int)(monto * 0.1); // 10% del monto en puntos
+    }
+}
 
-var raul = new Cliente("Raul Perez");
-    raul.Agregar(new CuentaOro("10001", 1000));
-    raul.Agregar(new CuentaPlata("10002", 2000));
+class CuentaPlata : Cuenta
+{
+    protected override void SumarPuntos(double monto)
+    {
+        Puntos += (int)(monto * 0.05); // 5% del monto en puntos
+    }
+}
 
-var sara = new Cliente("Sara Lopez");
-    sara.Agregar(new CuentaPlata("10003", 3000));
-    sara.Agregar(new CuentaPlata("10004", 4000));
+class CuentaBronce : Cuenta
+{
+    protected override void SumarPuntos(double monto)
+    {
+        Puntos += (int)(monto * 0.02); // 2% del monto en puntos
+    }
+}
 
-var luis = new Cliente("Luis Gomez");
-    luis.Agregar(new CuentaBronce("10005", 5000));
+class Cliente
+{
+    public string Nombre { get; private set; }
+    public Cuenta Cuenta { get; private set; }
 
-var nac = new Banco("Banco Nac");
-nac.Agregar(raul);
-nac.Agregar(sara);
+    public Cliente(string nombre, Cuenta cuenta)
+    {
+        Nombre = nombre;
+        Cuenta = cuenta;
+    }
 
-var tup = new Banco("Banco TUP");
-tup.Agregar(luis);
+    public override string ToString()
+    {
+        return $"Cliente: {Nombre}, {Cuenta}";
+    }
+}
 
+class Banco
+{
+    private List<Cliente> clientes = new List<Cliente>();
 
-// Registrar Operaciones
-nac.Registrar(new Deposito("10001", 100));
-nac.Registrar(new Retiro("10002", 200));
-nac.Registrar(new Transferencia("10001", "10002", 300));
-nac.Registrar(new Transferencia("10003", "10004", 500));
-nac.Registrar(new Pago("10002", 400));
+    public void AgregarCliente(Cliente cliente)
+    {
+        clientes.Add(cliente);
+    }
 
-tup.Registrar(new Deposito("10005", 100));
-tup.Registrar(new Retiro("10005", 200));
-tup.Registrar(new Transferencia("10005", "10002", 300));
-tup.Registrar(new Pago("10005", 400));
+    public Cliente BuscarCliente(string nombre)
+    {
+        return clientes.Find(c => c.Nombre.Equals(nombre, StringComparison.OrdinalIgnoreCase));
+    }
 
+    public void MostrarClientes()
+    {
+        foreach (var cliente in clientes)
+        {
+            Console.WriteLine(cliente);
+        }
+    }
+}
 
-// Informe final
-nac.Informe();
-tup.Informe();
+// --- Código principal para dotnet-script ---
+Banco banco = new Banco();
+bool salir = false;
 
+while (!salir)
+{
+    Console.Clear();
+    Console.WriteLine("\n=== Bienvenido al sistema bancario de Banco Galicia ===\n");
+    Console.WriteLine("1. Agregar cliente");
+    Console.WriteLine("2. Depositar a cliente");
+    Console.WriteLine("3. Ver datos de cliente");
+    Console.WriteLine("4. Mostrar todos los clientes");
+    Console.WriteLine("5. Salir");
+    Console.Write("Seleccione una opción: ");
+
+    string opcion = Console.ReadLine();
+
+    switch (opcion)
+    {
+        case "1":
+            Console.Write("Ingrese el nombre del cliente: ");
+            string nombre = Console.ReadLine();
+
+            Console.WriteLine("Tipo de cuenta (Oro, Plata, Bronce): ");
+            string tipo = Console.ReadLine().ToLower();
+            Cuenta cuenta = null;
+            switch (tipo)
+            {
+                case "oro":
+                    cuenta = new CuentaOro();
+                    break;
+                case "plata":
+                    cuenta = new CuentaPlata();
+                    break;
+                case "bronce":
+                    cuenta = new CuentaBronce();
+                    break;
+            }
+
+            if (cuenta != null)
+            {
+                banco.AgregarCliente(new Cliente(nombre, cuenta));
+                Console.WriteLine("Cliente agregado exitosamente a Banco Galicia.");
+            }
+            else
+            {
+                Console.WriteLine("Tipo de cuenta inválido. Solo se aceptan cuentas Oro, Plata o Bronce.");
+            }
+            break;
+
+        case "2":
+            Console.Write("Ingrese el nombre del cliente: ");
+            string nombreDep = Console.ReadLine();
+            var clienteDep = banco.BuscarCliente(nombreDep);
+            if (clienteDep != null)
+            {
+                Console.Write("Monto a depositar: $");
+                if (double.TryParse(Console.ReadLine(), out double monto))
+                {
+                    clienteDep.Cuenta.Depositar(monto);
+                    Console.WriteLine("Depósito realizado con éxito en Banco Galicia.");
+                }
+                else
+                {
+                    Console.WriteLine("Monto inválido. Intente nuevamente.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Cliente no encontrado en nuestros registros.");
+            }
+            break;
+
+        case "3":
+            Console.Write("Ingrese el nombre del cliente: ");
+            string nombreVer = Console.ReadLine();
+            var clienteVer = banco.BuscarCliente(nombreVer);
+            if (clienteVer != null)
+            {
+                Console.WriteLine(clienteVer);
+            }
+            else
+            {
+                Console.WriteLine("Cliente no encontrado en Banco Galicia.");
+            }
+            break;
+
+        case "4":
+            Console.WriteLine("\n--- Lista de clientes del Banco Galicia ---\n");
+            banco.MostrarClientes();
+            break;
+
+        case "5":
+            salir = true;
+            break;
+
+        default:
+            Console.WriteLine("Opción no válida. Intente nuevamente.");
+            break;
+    }
+
+    if (!salir)
+    {
+        Console.WriteLine("\nPresione una tecla para continuar...");
+        Console.ReadKey();
+    }
+}
+
+Console.Clear();
+Console.WriteLine("Gracias por utilizar el sistema del Banco Galicia. ¡Hasta pronto!");
+Console.ReadKey();
