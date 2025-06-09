@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Agregar servicios CORS para permitir solicitudes desde el cliente
@@ -59,21 +57,55 @@ app.MapGet("/api/carritos/{carritoId}", async (string carritoId, TiendaContext d
 app.MapPut("/api/carritos/{carritoId}/{productoId}", async (string carritoId, int productoId, int cantidad, TiendaContext db) =>
 {
     var producto = await db.Productos.FindAsync(productoId);
-    if (producto == null)
-    {
-        return Results.NotFound("Producto no encontrado.");
-    }
+    if (producto == null) return Results.NotFound("Producto no encontrado.");
+    if (producto.Stock < cantidad) return Results.BadRequest("Stock insuficiente.");
+
     var carrito = await db.Carritos
         .Include(c => c.Items)
         .FirstOrDefaultAsync(c => c.Id == carritoId) ?? new Carrito { Id = carritoId };
 
-    var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
-if (item != null)
-{
-    item.Cantidad += cantidad;
-}
-else
-{
-    carrito.Items.Add(new ItemCarrito { ProductoId = productoId, Cantidad = cantidad, PrecioUnitario = producto.Precio });
-}
+        var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
+   if (item != null)
+    {
+        item.Cantidad += cantidad;
+    }
+    else
+    {
+        carrito.Items.Add(new ItemCarrito { ProductoId = productoId, Cantidad = cantidad, PrecioUnitario = producto.Precio });
+    }
+    if (carrito.Id == null) db.Carritos.Add(carrito);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
 app.Run();
+
+public class TiendaContext : DbContext
+{
+    public TiendaContext(DbContextOptions<TiendaContext> options) : base(options) { }
+    public DbSet<Producto> Productos { get; set; }
+    public DbSet<Carrito> Carritos { get; set; }
+}
+
+public class Producto
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; }
+    public string Descripcion { get; set; }
+    public decimal Precio { get; set; }
+    public int Stock { get; set; }
+}
+
+public class Carrito
+{
+    public string Id { get; set; }
+    public List<ItemCarrito> Items { get; set; } = new List<ItemCarrito>();
+}
+
+public class ItemCarrito
+{
+    public int Id { get; set; }
+    public int ProductoId { get; set; }
+    public Producto Producto { get; set; }
+    public int Cantidad { get; set; }
+    public decimal PrecioUnitario { get; set; }
+}
