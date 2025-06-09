@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Agregar servicios CORS para permitir solicitudes desde el cliente
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowClientApp", policy => {
-        policy.WithOrigins("http://localhost:5177", "https://localhost:7221")
+        policy.WithOrigins("http://localhost:5184", "https://localhost:7221")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -26,15 +26,19 @@ app.UseCors("AllowClientApp");
 // para probar la conexión a la base de datos
 app.MapGet("/", () => "API De mi Tienda Fender - Funciona correctamente.");
 // productos
-app.MapGet("/api/productos", async (TiendaContext db)
-=> await db.Productos.ToListAsync());
+app.MapGet("/api/productos", async (TiendaContext db) =>
+    await db.Productos.AsNoTracking().ToListAsync()
+);
  
 app.MapGet("api/productos/buscar", async(string term, TiendaContext db) => {
     return await db.Productos
+        .AsNoTracking()
         .Where(p => p.Nombre.Contains(term) || p.Descripcion.Contains(term))
         .ToListAsync();
 });
 // carrito 
+
+
 app.MapPost("/api/carritos", () =>
 {
     var carritoId = Guid.NewGuid().ToString();
@@ -57,15 +61,26 @@ app.MapGet("/api/carritos/{carritoId}", async (string carritoId, TiendaContext d
 app.MapPut("/api/carritos/{carritoId}/{productoId}", async (string carritoId, int productoId, int cantidad, TiendaContext db) =>
 {
     var producto = await db.Productos.FindAsync(productoId);
+    if (cantidad <= 0) return Results.BadRequest("La cantidad debe ser mayor a cero.");
     if (producto == null) return Results.NotFound("Producto no encontrado.");
     if (producto.Stock < cantidad) return Results.BadRequest("Stock insuficiente.");
 
+    // Buscar el carrito en la base de datos
     var carrito = await db.Carritos
         .Include(c => c.Items)
-        .FirstOrDefaultAsync(c => c.Id == carritoId) ?? new Carrito { Id = carritoId };
+        .FirstOrDefaultAsync(c => c.Id == carritoId);
 
-        var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
-   if (item != null)
+    // Si el carrito no existe, crearlo
+    if (carrito == null)
+    {
+        carrito = new Carrito { Id = carritoId };
+        db.Carritos.Add(carrito);
+        await db.SaveChangesAsync();
+    }
+
+    // Manejo de los productos en el carrito
+    var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
+    if (item != null)
     {
         item.Cantidad += cantidad;
     }
@@ -73,7 +88,7 @@ app.MapPut("/api/carritos/{carritoId}/{productoId}", async (string carritoId, in
     {
         carrito.Items.Add(new ItemCarrito { ProductoId = productoId, Cantidad = cantidad, PrecioUnitario = producto.Precio });
     }
-    if (carrito.Id == null) db.Carritos.Add(carrito);
+
     await db.SaveChangesAsync();
     return Results.Ok();
 });
