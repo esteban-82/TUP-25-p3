@@ -106,7 +106,83 @@ app.MapPut("/api/carritos/{carritoId}/{productoId}",
     return Results.Ok(carrito);
 });
 
+app.MapDelete("/api/carritos/{carritoId}", async (string carritoId, TiendaContext db) =>
+{
+    var carrito = await db.Carritos
+        .Include(c => c.Items)
+        .FirstOrDefaultAsync(c => c.Id == carritoId);
+
+    if (carrito is null)
+        return Results.NotFound();
+
+    carrito.Items.Clear();
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/carritos/{carritoId}/{productoId}", async (string carritoId, int productoId, TiendaContext db) =>
+{
+    var carrito = await db.Carritos
+        .Include(c => c.Items)
+        .FirstOrDefaultAsync(c => c.Id == carritoId);
+
+    if (carrito is null)
+        return Results.NotFound();
+
+    var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
+    if (item is null)
+        return Results.NotFound();
+
+    carrito.Items.Remove(item);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+app.MapPut("/api/carritos/{carritoId}/confirmar", async (string carritoId, ClienteDto cliente, TiendaContext db) =>
+{
+    var carrito = await db.Carritos
+        .Include(c => c.Items)
+        .ThenInclude(i => i.Producto)
+        .FirstOrDefaultAsync(c => c.Id == carritoId);
+
+    if (carrito is null || !carrito.Items.Any())
+        return Results.BadRequest("El carrito está vacío o no existe.");
+
+    foreach (var item in carrito.Items)
+    {
+        if (item.Producto.Stock < item.Cantidad)
+            return Results.BadRequest($"Stock insuficiente para {item.Producto.Nombre}.");
+    }
+
+    var compra = new Compra
+    {
+        NombreCliente = cliente.Nombre,
+        ApellidoCliente = cliente.Apellido,
+        EmailCliente = cliente.Email,
+        Total = carrito.Items.Sum(i => i.Cantidad * i.PrecioUnitario),
+        Items = carrito.Items.Select(i => new ItemCompra
+        {
+            ProductoId = i.ProductoId,
+            Cantidad = i.Cantidad,
+            PrecioUnitario = i.PrecioUnitario
+        }).ToList()
+    };
+
+    foreach (var item in carrito.Items)
+    {
+        item.Producto.Stock -= item.Cantidad;
+    }
+
+    db.Compras.Add(compra);
+    carrito.Items.Clear();
+    await db.SaveChangesAsync();
+
+    return Results.Ok(compra);
+});
+
 app.Run();
+
+public record ClienteDto(string Nombre, string Apellido, string Email);
 
 public class TiendaContext : DbContext
 {
@@ -115,6 +191,8 @@ public class TiendaContext : DbContext
 
     public DbSet<Producto> Productos { get; set; }
     public DbSet<Carrito> Carritos { get; set; }
+    public DbSet<Compra> Compras { get; set; }
+    public DbSet<ItemCompra> ItemsCompra { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -176,6 +254,28 @@ public class ItemCarrito
     public int Id { get; set; }
     public int ProductoId { get; set; }
     public Producto Producto { get; set; }
+    public int Cantidad { get; set; }
+    public decimal PrecioUnitario { get; set; }
+}
+
+public class Compra
+{
+    public int Id { get; set; }
+    public DateTime Fecha { get; set; } = DateTime.Now;
+    public decimal Total { get; set; }
+    public string NombreCliente { get; set; }
+    public string ApellidoCliente { get; set; }
+    public string EmailCliente { get; set; }
+    public List<ItemCompra> Items { get; set; } = new();
+}
+
+public class ItemCompra
+{
+    public int Id { get; set; }
+    public int ProductoId { get; set; }
+    public Producto Producto { get; set; }
+    public int CompraId { get; set; }
+    public Compra Compra { get; set; }
     public int Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
 }
