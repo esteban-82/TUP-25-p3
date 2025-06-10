@@ -36,11 +36,18 @@ app.MapGet("api/productos/buscar", async (string term, TiendaContext db) =>
         .ToListAsync();
 });
 
-app.MapPost("/api/carritos", () =>
+app.MapPost("/api/carritos", async (TiendaContext db) =>
 {
     var carritoId = Guid.NewGuid().ToString();
-    return Results.Created($"/api/carritos/{carritoId}", new { CarritoId = carritoId });
+    
+    var nuevoCarrito = new Carrito { Id = carritoId };
+
+    db.Carritos.Add(nuevoCarrito);
+    await db.SaveChangesAsync(); 
+
+    return Results.Created($"/api/carritos/{carritoId}", nuevoCarrito);
 });
+
 
 app.MapGet("/api/carritos/{carritoId}", async (string carritoId, TiendaContext db) =>
 {
