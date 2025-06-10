@@ -2,42 +2,39 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Agregar servicios CORS para permitir solicitudes desde el cliente
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowClientApp", policy => {
-        policy.WithOrigins("http://localhost:5184", "https://localhost:7221")
+        policy.WithOrigins("http://localhost:5184", "https://localhost:7221", "http://localhost:5177")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-// Agregar controladores si es necesario
 builder.Services.AddDbContext<TiendaContext>(options =>
     options.UseSqlite("Data Source=tienda.db"));
 
 var app = builder.Build();
 
-// Configurar el pipeline de solicitudes HTTP
-if (app.Environment.IsDevelopment()) {
+if (app.Environment.IsDevelopment())
+{
     app.UseDeveloperExceptionPage();
 }
 
 app.UseCors("AllowClientApp");
-// para probar la conexión a la base de datos
+
 app.MapGet("/", () => "API De mi Tienda Fender - Funciona correctamente.");
-// productos
+
 app.MapGet("/api/productos", async (TiendaContext db) =>
     await db.Productos.AsNoTracking().ToListAsync()
 );
- 
-app.MapGet("api/productos/buscar", async(string term, TiendaContext db) => {
+
+app.MapGet("api/productos/buscar", async (string term, TiendaContext db) =>
+{
     return await db.Productos
         .AsNoTracking()
         .Where(p => p.Nombre.Contains(term) || p.Descripcion.Contains(term))
         .ToListAsync();
 });
-// carrito 
-
 
 app.MapPost("/api/carritos", () =>
 {
@@ -48,9 +45,9 @@ app.MapPost("/api/carritos", () =>
 app.MapGet("/api/carritos/{carritoId}", async (string carritoId, TiendaContext db) =>
 {
     var carrito = await db.Carritos
-    .Include(c => c.Items)
-    .ThenInclude(i => i.Producto)
-    .FirstOrDefaultAsync(c => c.Id == carritoId);
+        .Include(c => c.Items)
+        .ThenInclude(i => i.Producto)
+        .FirstOrDefaultAsync(c => c.Id == carritoId);
     if (carrito == null)
     {
         return Results.NotFound();
@@ -65,12 +62,10 @@ app.MapPut("/api/carritos/{carritoId}/{productoId}", async (string carritoId, in
     if (producto == null) return Results.NotFound("Producto no encontrado.");
     if (producto.Stock < cantidad) return Results.BadRequest("Stock insuficiente.");
 
-    // Buscar el carrito en la base de datos
     var carrito = await db.Carritos
         .Include(c => c.Items)
         .FirstOrDefaultAsync(c => c.Id == carritoId);
 
-    // Si el carrito no existe, crearlo
     if (carrito == null)
     {
         carrito = new Carrito { Id = carritoId };
@@ -78,7 +73,6 @@ app.MapPut("/api/carritos/{carritoId}/{productoId}", async (string carritoId, in
         await db.SaveChangesAsync();
     }
 
-    // Manejo de los productos en el carrito
     var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
     if (item != null)
     {
@@ -92,6 +86,7 @@ app.MapPut("/api/carritos/{carritoId}/{productoId}", async (string carritoId, in
     await db.SaveChangesAsync();
     return Results.Ok();
 });
+
 app.Run();
 
 public class TiendaContext : DbContext
@@ -102,10 +97,10 @@ public class TiendaContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Producto>().HasData(
-            new Producto { Id = 1, Nombre = "American Luxe Telecaster", Descripcion = "Guitarra Telecaster de lujo con acabado premium.", Precio = 2500, Stock = 5, ImagenUrl = "imagenes/american-luxe-telecaster.png" },
-            new Producto { Id = 2, Nombre = "American Telecaster Blanca", Descripcion = "Telecaster con cuerpo blanco y sonido potente.", Precio = 2200, Stock = 4, ImagenUrl = "imagenes/american-telecaster-blanca.png" },
-            new Producto { Id = 3, Nombre = "Stratocaster Professional II", Descripcion = "Stratocaster ideal para músicos profesionales.", Precio = 2300, Stock = 6, ImagenUrl = "imagenes/stratocaster-professional-ii.png" },
-            new Producto { Id = 4, Nombre = "Vintage Telecaster", Descripcion = "Modelo Telecaster con estética y tono vintage.", Precio = 2100, Stock = 3, ImagenUrl = "imagenes/vintage-telecaster.png" }
+            new Producto { Id = 1, Nombre = "American Luxe Telecaster", Descripcion = "Guitarra Telecaster de lujo con acabado premium.", Precio = 2500, Stock = 5, ImagenUrl = "/imagenes/american-luxe-telecaster.png" },
+            new Producto { Id = 2, Nombre = "American Telecaster Blanca", Descripcion = "Telecaster con cuerpo blanco y sonido potente.", Precio = 2200, Stock = 4, ImagenUrl = "/imagenes/american-telecaster-blanca.png" },
+            new Producto { Id = 3, Nombre = "Stratocaster Professional II", Descripcion = "Stratocaster ideal para músicos profesionales.", Precio = 2300, Stock = 6, ImagenUrl = "/imagenes/stratocaster-professional-ii.png" },
+            new Producto { Id = 4, Nombre = "Vintage Telecaster", Descripcion = "Modelo Telecaster con estética y tono vintage.", Precio = 2100, Stock = 3, ImagenUrl = "/imagenes/vintage-telecaster.png" }
         );
     }
 }
