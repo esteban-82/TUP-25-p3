@@ -99,6 +99,15 @@ public class TiendaContext : DbContext
     public TiendaContext(DbContextOptions<TiendaContext> options) : base(options) { }
     public DbSet<Producto> Productos { get; set; }
     public DbSet<Carrito> Carritos { get; set; }
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Producto>().HasData(
+            new Producto { Id = 1, Nombre = "American Luxe Telecaster", Descripcion = "Guitarra Telecaster de lujo con acabado premium.", Precio = 2500, Stock = 5, ImagenUrl = "imagenes/american-luxe-telecaster.png" },
+            new Producto { Id = 2, Nombre = "American Telecaster Blanca", Descripcion = "Telecaster con cuerpo blanco y sonido potente.", Precio = 2200, Stock = 4, ImagenUrl = "imagenes/american-telecaster-blanca.png" },
+            new Producto { Id = 3, Nombre = "Stratocaster Professional II", Descripcion = "Stratocaster ideal para músicos profesionales.", Precio = 2300, Stock = 6, ImagenUrl = "imagenes/stratocaster-professional-ii.png" },
+            new Producto { Id = 4, Nombre = "Vintage Telecaster", Descripcion = "Modelo Telecaster con estética y tono vintage.", Precio = 2100, Stock = 3, ImagenUrl = "imagenes/vintage-telecaster.png" }
+        );
+    }
 }
 
 public class Producto
@@ -108,6 +117,7 @@ public class Producto
     public string Descripcion { get; set; }
     public decimal Precio { get; set; }
     public int Stock { get; set; }
+    public string ImagenUrl { get; set; }
 }
 
 public class Carrito
