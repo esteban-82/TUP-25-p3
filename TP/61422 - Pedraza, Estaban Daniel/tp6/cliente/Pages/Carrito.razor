@@ -1,0 +1,26 @@
+@page "/carrito"
+@inject CarritoService CarritoService
+
+<h3>Carrito</h3>
+
+<button @onclick="CrearCarrito">Crear Carrito</button>
+
+@if (carrito is not null)
+{
+    <p>ID: @carrito.Id</p>
+    <ul>
+        @foreach (var item in carrito.Items)
+        {
+            <li>@item.Producto.Nombre - Cantidad: @item.Cantidad</li>
+        }
+    </ul>
+}
+
+@code {
+    private Carrito carrito;
+
+    private async Task CrearCarrito()
+    {
+        carrito = await CarritoService.CrearCarritoAsync();
+    }
+}
