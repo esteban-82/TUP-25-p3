@@ -228,6 +228,57 @@ public class TiendaContext : DbContext
                 Precio = 2100,
                 Stock = 3,
                 ImagenUrl = "/imagenes/vintage-telecaster.png"
+            },
+            new Producto {
+                Id = 5,
+                Nombre = "Fender Acoustasonic Telecaster",
+                Descripcion = "Guitarra acústica y eléctrica en un solo instrumento.",
+                Precio = 1800,
+                Stock = 10,
+                ImagenUrl = "/imagenes/acoustasonic-tele.png"
+            },
+            new Producto {
+                Id = 6,
+                Nombre = "Fender Acoustasonic Stratocaster",
+                Descripcion = "Stratocaster de la serie Acoustasonic con gran versatilidad.",
+                Precio = 1500,
+                Stock = 8,
+                ImagenUrl = "/imagenes/acoustasonic-strato.png"
+            },
+            new Producto {
+                Id = 7,
+                Nombre = "Fender Standard Stratocaster",
+                Descripcion = "Stratocaster de la serie Standard con características clásicas.",
+                Precio = 1200,
+                Stock = 12,
+                ImagenUrl = "/imagenes/stratocaster-standard.png"
+            },
+            new Producto
+            {
+                Id = 8,
+                Nombre = "Fender Telecaster Verde Modificada",
+                Descripcion = "Telecaster con cuerpo verde y modificaciones personalizadas.",
+                Precio = 1300,
+                Stock = 15,
+                ImagenUrl = "/imagenes/telecaster-verde-modificada.png"
+            },
+            new Producto
+            {
+                Id = 9,
+                Nombre = "Mike Campbell Telecaster",
+                Descripcion = "Telecaster inspirada y modificada con el estilo de Mike Campbell.",
+                Precio = 1400,
+                Stock = 7,
+                ImagenUrl = "/imagenes/mike-campbell-telecaster.png"
+            },
+            new Producto
+            {
+                Id = 10,
+                Nombre = "Fender Vintage Telecaster",
+                Descripcion = "Telecaster de la serie Vintage con un sonido al pasado.",
+                Precio = 1600,
+                Stock = 9,
+                ImagenUrl = "/imagenes/edicion-limitada-vintage-telecaster.png"
             }
         );
     }
