@@ -1,0 +1,58 @@
+@page "/confirmar"
+@using cliente.Models
+@using cliente.Services
+@inject CarritoService CarritoService
+@inject CarritoStateService CarritoStateService
+
+<h3>Confirmar compra</h3>
+
+@if (carritoModel is null)
+{
+    <div>El carrito está vacío.</div>
+}
+else if (carritoModel.Items.Count == 0)
+{
+    <div>No hay productos en el carrito.</div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Cantidad</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in carritoModel.Items)
+            {
+                <tr>
+                    <td>@item.Producto?.Nombre</td>
+                    <td>$@item.PrecioUnitario</td>
+                    <td>@item.Cantidad</td>
+                    <td>$@(item.Cantidad * item.PrecioUnitario)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <button class="btn btn-success" @onclick="ConfirmarCompra">Confirmar compra</button>
+}
+
+@code {
+    private cliente.Models.Carrito carritoModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var carritoId = await CarritoStateService.GetCarritoIdAsync();
+        if (!string.IsNullOrEmpty(carritoId))
+        {
+            carritoModel = await CarritoService.ObtenerCarritoAsync(carritoId);
+        }
+    }
+
+    private async Task ConfirmarCompra()
+    {
+    }
+}
