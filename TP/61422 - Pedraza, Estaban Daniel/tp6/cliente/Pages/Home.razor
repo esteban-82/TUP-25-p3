@@ -1,9 +1,15 @@
 ﻿@page "/"
+
 @using cliente.Services
 @using cliente.Models
+@using Microsoft.AspNetCore.Components
+
 @inject ApiService ApiService
 @inject CarritoService CarritoService
+@inject NavigationManager Navigation
+@inject CarritoStateService CarritoStateService
 
+@using Microsoft.AspNetCore.Components.Web
 <PageTitle>Inicio</PageTitle>
 
 <div class="container">
@@ -78,28 +84,36 @@
     private string carritoId;
     private string mensaje;
 
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string buscar { get; set; }
+
     protected override async Task OnInitializedAsync()
+    {
+        carritoId = await CarritoStateService.GetCarritoIdAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
     {
         await ObtenerDatosDelServidor();
     }
 
     private async Task ObtenerDatosDelServidor()
     {
-        try
+        cargando = true;
+        error = null;
+
+        var todos = await ApiService.ObtenerProductosAsync();
+        if (!string.IsNullOrWhiteSpace(buscar))
         {
-            cargando = true;
-            error = null;
-            productos = await ApiService.ObtenerProductosAsync();
+            productos = todos.Where(p => p.Nombre.Contains(buscar, StringComparison.OrdinalIgnoreCase) || p.Descripcion.Contains(buscar, StringComparison.OrdinalIgnoreCase)).ToList();
         }
-        catch (Exception ex)
+        else
         {
-            error = ex.Message;
-            productos = null;
+            productos = todos;
         }
-        finally
-        {
-            cargando = false;
-        }
+
+        cargando = false;
     }
 
     private async Task AgregarAlCarrito(int productoId)
@@ -110,10 +124,12 @@
             {
                 var carrito = await CarritoService.CrearCarritoAsync();
                 carritoId = carrito.Id;
+                await CarritoStateService.SetCarritoIdAsync(carritoId);
             }
 
             await CarritoService.AgregarProductoAsync(carritoId, productoId, 1);
             mensaje = "Producto agregado al carrito";
+            CarritoStateService.NotificarCambio();
         }
         catch (Exception ex)
         {
