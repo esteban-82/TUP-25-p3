@@ -3,16 +3,17 @@
 @using cliente.Services
 @inject CarritoService CarritoService
 @inject CarritoStateService CarritoStateService
+@inject NavigationManager Navigation
 
 <h3>Confirmar compra</h3>
 
 @if (carritoModel is null)
 {
-    <div>El carrito está vacío.</div>
+    <div class="alert alert-info">El carrito está vacío.</div>
 }
 else if (carritoModel.Items.Count == 0)
 {
-    <div>No hay productos en el carrito.</div>
+    <div class="alert alert-warning">No hay productos en el carrito.</div>
 }
 else
 {
@@ -37,11 +38,31 @@ else
             }
         </tbody>
     </table>
-    <button class="btn btn-success" @onclick="ConfirmarCompra">Confirmar compra</button>
+    <div class="mb-3">
+        <strong>Total: $@carritoModel.Items.Sum(i => i.Cantidad * i.PrecioUnitario)</strong>
+    </div>
+    <EditForm Model="@cliente" OnValidSubmit="ConfirmarCompra">
+        <div class="mb-2">
+            <InputText @bind-Value="cliente.Nombre" class="form-control" placeholder="Nombre" required />
+        </div>
+        <div class="mb-2">
+            <InputText @bind-Value="cliente.Apellido" class="form-control" placeholder="Apellido" required />
+        </div>
+        <div class="mb-2">
+            <InputText @bind-Value="cliente.Email" class="form-control" placeholder="Email" required />
+        </div>
+        <button class="btn btn-success" type="submit">Confirmar compra</button>
+    </EditForm>
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="alert alert-info mt-2">@mensaje</div>
+    }
 }
 
 @code {
     private cliente.Models.Carrito carritoModel;
+    private ClienteDto cliente = new();
+    private string mensaje;
 
     protected override async Task OnInitializedAsync()
     {
@@ -54,5 +75,19 @@ else
 
     private async Task ConfirmarCompra()
     {
+        var carritoId = await CarritoStateService.GetCarritoIdAsync();
+        try
+        {
+            await CarritoService.ConfirmarCompraAsync(carritoId, cliente);
+            mensaje = "¡Compra confirmada!";
+            await CarritoService.VaciarCarritoAsync(carritoId);
+            CarritoStateService.NotificarCambio();
+            await Task.Delay(1500);
+            Navigation.NavigateTo("/");
+        }
+        catch
+        {
+            mensaje = "Error al confirmar la compra. Intente nuevamente.";
+        }
     }
 }

@@ -24,12 +24,10 @@ namespace cliente.Services
             return await _http.GetFromJsonAsync<Carrito>($"api/carritos/{carritoId}");
         }
 
-        public async Task<Carrito> AgregarProductoAsync(string carritoId, int productoId, int cantidad)
+        public async Task AgregarProductoAsync(string carritoId, int productoId, int cantidad)
         {
-            var response = await _http.PutAsync(
-                $"api/carritos/{carritoId}/{productoId}?cantidad={cantidad}", null);
+            var response = await _http.PutAsJsonAsync($"api/carritos/{carritoId}/{productoId}?cantidad={cantidad}", new { });
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<Carrito>();
         }
 
         public async Task EliminarProductoAsync(string carritoId, int productoId)
@@ -37,5 +35,24 @@ namespace cliente.Services
             var response = await _http.DeleteAsync($"api/carritos/{carritoId}/{productoId}");
             response.EnsureSuccessStatusCode();
         }
+
+        public async Task VaciarCarritoAsync(string carritoId)
+        {
+            var response = await _http.DeleteAsync($"api/carritos/{carritoId}");
+            response.EnsureSuccessStatusCode();
+        }
+
+        public async Task ConfirmarCompraAsync(string carritoId, ClienteDto cliente)
+        {
+            var response = await _http.PutAsJsonAsync($"api/carritos/{carritoId}/confirmar", cliente);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    public class ClienteDto
+    {
+        public string Nombre { get; set; }
+        public string Apellido { get; set; }
+        public string Email { get; set; }
     }
 }
