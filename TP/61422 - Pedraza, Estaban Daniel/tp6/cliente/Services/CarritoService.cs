@@ -45,14 +45,11 @@ namespace cliente.Services
         public async Task ConfirmarCompraAsync(string carritoId, ClienteDto cliente)
         {
             var response = await _http.PutAsJsonAsync($"api/carritos/{carritoId}/confirmar", cliente);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(error);
+            }
         }
-    }
-
-    public class ClienteDto
-    {
-        public string Nombre { get; set; }
-        public string Apellido { get; set; }
-        public string Email { get; set; }
     }
 }

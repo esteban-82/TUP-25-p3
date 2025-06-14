@@ -73,33 +73,43 @@ app.MapPut("/api/carritos/{carritoId}/{productoId}",
     async (string carritoId, int productoId, int cantidad, TiendaContext db) =>
 {
     var producto = await db.Productos.FindAsync(productoId);
-    if (cantidad <= 0) return Results.BadRequest("La cantidad debe ser mayor a cero.");
     if (producto is null) return Results.NotFound("Producto no encontrado.");
-    if (producto.Stock < cantidad) return Results.BadRequest("Stock insuficiente.");
 
     var carrito = await db.Carritos
         .Include(c => c.Items)
         .FirstOrDefaultAsync(c => c.Id == carritoId);
 
     if (carrito is null)
-    {
-        carrito = new Carrito { Id = carritoId };
-        db.Carritos.Add(carrito);
-    }
+        return Results.NotFound();
 
     var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
+
     if (item is not null)
     {
         item.Cantidad += cantidad;
+        if (item.Cantidad <= 0)
+        {
+            carrito.Items.Remove(item);
+        }
+        else if (item.Cantidad > producto.Stock)
+        {
+            return Results.BadRequest("Stock insuficiente.");
+        }
     }
-    else
+    else if (cantidad > 0)
     {
+        if (producto.Stock < cantidad)
+            return Results.BadRequest("Stock insuficiente.");
         carrito.Items.Add(new ItemCarrito
         {
             ProductoId = productoId,
             Cantidad = cantidad,
             PrecioUnitario = producto.Precio
         });
+    }
+    else
+    {
+        return Results.BadRequest("No se puede restar productos que no están en el carrito.");
     }
 
     await db.SaveChangesAsync();
@@ -177,7 +187,7 @@ app.MapPut("/api/carritos/{carritoId}/confirmar", async (string carritoId, Clien
     carrito.Items.Clear();
     await db.SaveChangesAsync();
 
-    return Results.Ok(compra);
+    return Results.Ok(new { mensaje = "Compra confirmada" });
 });
 
 app.Run();

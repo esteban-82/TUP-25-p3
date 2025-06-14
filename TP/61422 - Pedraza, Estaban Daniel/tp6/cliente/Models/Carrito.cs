@@ -3,7 +3,7 @@ namespace cliente.Models
     public class Carrito
     {
         public string Id { get; set; }
-        public List<ItemCarrito> Items { get; set; } = [];
+        public List<ItemCarrito> Items { get; set; } = new();
     }
 
     public class ItemCarrito
@@ -14,4 +14,5 @@ namespace cliente.Models
         public int Cantidad { get; set; }
         public decimal PrecioUnitario { get; set; }
     }
+
 }
